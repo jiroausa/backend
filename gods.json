@@ -1,0 +1,131 @@
+ [
+{
+"id": "zeus",
+"name": "Zeus",
+"description": "King of the gods, ruler of the sky, lightning, and thunder.",
+"parents": ["Cronus", "Rhea"],
+"siblings": ["Hera", "Poseidon", "Hades", "Demeter", "Hestia"],
+"spouse": ["Hera"],
+"children": ["Athena", "Ares", "Apollo", "Artemis", "Hermes", "Dionysus"]
+},
+{
+"id": "hera",
+"name": "Hera",
+"description": "Queen of the gods, goddess of marriage and family.",
+"parents": ["Cronus", "Rhea"],
+"siblings": ["Zeus", "Poseidon", "Hades", "Demeter", "Hestia"],
+"spouse": ["Zeus"],
+"children": ["Ares", "Hephaestus"]
+},
+{
+"id": "poseidon",
+"name": "Poseidon",
+"description": "God of the sea, earthquakes, storms, and horses.",
+"parents": ["Cronus", "Rhea"],
+"siblings": ["Zeus", "Hera", "Hades", "Demeter", "Hestia"],
+"spouse": ["Amphitrite"],
+"children": ["Triton"]
+},
+{
+"id": "hades",
+"name": "Hades",
+"description": "God of the underworld and the dead.",
+"parents": ["Cronus", "Rhea"],
+"siblings": ["Zeus", "Hera", "Poseidon", "Demeter", "Hestia"],
+"spouse": ["Persephone"]
+},
+{
+"id": "athena",
+"name": "Athena",
+"description": "Goddess of wisdom, war strategy, and intelligence.",
+"parents": ["Zeus"],
+"siblings": ["Ares", "Apollo", "Artemis", "Hermes"]
+},
+{
+"id": "aphrodite",
+"name": "Aphrodite",
+"description": "Goddess of love, beauty, and desire.",
+"parents": ["Zeus", "Dione"],
+"siblings": ["Ares"],
+"spouse": ["Hephaestus"]
+},
+{
+"id": "ares",
+"name": "Ares",
+"description": "God of war, violence, and battle chaos.",
+"parents": ["Zeus", "Hera"],
+"siblings": ["Athena", "Apollo", "Artemis", "Hermes"],
+"spouse": ["Aphrodite"]
+},
+{
+"id": "hephaestus",
+"name": "Hephaestus",
+"description": "God of fire, metalworking, and blacksmiths.",
+"parents": ["Zeus", "Hera"],
+"siblings": ["Ares"],
+"spouse": ["Aphrodite"]
+},
+{
+"id": "apollo",
+"name": "Apollo",
+"description": "God of music, light, prophecy, and healing.",
+"parents": ["Zeus", "Leto"],
+"siblings": ["Artemis"]
+},
+{
+"id": "artemis",
+"name": "Artemis",
+"description": "Goddess of the hunt, wilderness, and the moon.",
+"parents": ["Zeus", "Leto"],
+"siblings": ["Apollo"]
+},
+{
+"id": "hermes",
+"name": "Hermes",
+"description": "Messenger of the gods, god of travel, trade, and thieves.",
+"parents": ["Zeus", "Maia"],
+"siblings": ["Apollo", "Artemis", "Ares", "Athena"]
+},
+{
+"id": "demeter",
+"name": "Demeter",
+"description": "Goddess of agriculture, harvest, and fertility.",
+"parents": ["Cronus", "Rhea"],
+"siblings": ["Zeus", "Poseidon", "Hades", "Hera", "Hestia"],
+"children": ["Persephone"]
+},
+{
+"id": "persephone",
+"name": "Persephone",
+"description": "Queen of the underworld, goddess of spring growth.",
+"parents": ["Zeus", "Demeter"],
+"spouse": ["Hades"]
+},
+{
+"id": "dionysus",
+"name": "Dionysus",
+"description": "God of wine, festivity, madness, and theatre.",
+"parents": ["Zeus", "Semele"]
+},
+{
+"id": "hestia",
+"name": "Hestia",
+"description": "Goddess of the hearth, home, and family.",
+"parents": ["Cronus", "Rhea"],
+"siblings": ["Zeus", "Poseidon", "Hades", "Hera", "Demeter"]
+},
+{
+"id": "rhea",
+"name": "Rhea",
+"description": "Titaness and mother of the Olympian gods.",
+"parents": [],
+"siblings": ["Cronus"]
+},
+{
+"id": "cronus",
+"name": "Cronus",
+"description": "Leader of the Titans and father of the Olympian gods.",
+"parents": [],
+"children": ["Zeus", "Hera", "Poseidon", "Hades", "Demeter", "Hestia"]
+}
+] 
