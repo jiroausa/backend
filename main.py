@@ -17,7 +17,7 @@ app = FastAPI()
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000"],
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -258,6 +258,10 @@ def format_relation(god, relation):
 # =========================
 # 🚀 MAIN ENDPOINT
 # =========================
+
+@app.get("/")
+async def root():
+    return {"message": "Backend is running"}
 
 
 @app.post("/ask")
