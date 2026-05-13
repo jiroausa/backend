@@ -20,7 +20,7 @@ app.add_middleware(
 with open("gods.json") as f:
     greek_gods = json.load(f)
 
-# ✅ FIX 1: Pre-build name index for O(1) exact lookups
+
 gods_by_name: dict = {
     re.sub(r"[^a-z]", "", g["name"].lower()): g
     for g in greek_gods
@@ -28,7 +28,7 @@ gods_by_name: dict = {
 
 client = AsyncIOMotorClient(
     "mongodb://localhost:27017",
-    serverSelectionTimeoutMS=3000,   # ✅ FIX 2: Don't hang forever on DB connect
+    serverSelectionTimeoutMS=3000,   
     connectTimeoutMS=3000,
 )
 db = client["mythbot"]
@@ -53,7 +53,8 @@ def normalize(text: str) -> str:
     return re.sub(r"\s+", " ", text).strip()
 
 
-# ✅ FIX 3: Early-exit Levenshtein with cutoff to avoid unnecessary computation
+#lavenshtein
+
 def levenshtein(a: str, b: str, cutoff: int = 5) -> int:
     # Early exit if length difference alone exceeds cutoff
     if abs(len(a) - len(b)) > cutoff:
@@ -75,14 +76,13 @@ def levenshtein(a: str, b: str, cutoff: int = 5) -> int:
             val = min(insertions, deletions, substitutions)
             curr_row.append(val)
             row_min = min(row_min, val)
-        # ✅ Early exit: entire row already exceeds cutoff — no point continuing
+
         if row_min > cutoff:
             return cutoff + 1
         prev_row = curr_row
     return prev_row[-1]
 
 
-# ✅ FIX 4: Skip short stop-words and use indexed lookup first before fuzzy
 def find_closest_god(text: str):
     text_clean = normalize(text).replace(" ", "")
 
@@ -125,7 +125,6 @@ def extract_two_gods(text: str):
     if len(found) >= 2:
         return found[:2]
 
-    # ✅ FIX 5: Only fuzzy-search tokens long enough to be a god name
     for word in cleaned.split():
         if len(word) < 3:
             continue
@@ -147,7 +146,6 @@ def extract_single_god(text: str):
         if normalize(god["name"]) in cleaned:
             return god
 
-    # ✅ FIX 6: Only fuzzy-search tokens that are plausibly god-name length
     for word in cleaned.split():
         if len(word) < 3:
             continue
@@ -506,8 +504,7 @@ async def ask_god(query: Query):
                 "• 'What is Apollo's weakness?'\n"
                 "• 'Who are Hades's children?'"
             )
-
-    # ✅ FIX 8: Fire-and-forget MongoDB log — user no longer waits for DB write
+            
     async def log_to_db():
         try:
             await db.chats.insert_one({"user": query.message, "bot": response})
