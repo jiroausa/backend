@@ -5,6 +5,7 @@ from motor.motor_asyncio import AsyncIOMotorClient
 import json
 import re
 import math
+import asyncio
 
 app = FastAPI()
 
@@ -19,7 +20,17 @@ app.add_middleware(
 with open("gods.json") as f:
     greek_gods = json.load(f)
 
-client = AsyncIOMotorClient("mongodb://localhost:27017")
+# ✅ FIX 1: Pre-build name index for O(1) exact lookups
+gods_by_name: dict = {
+    re.sub(r"[^a-z]", "", g["name"].lower()): g
+    for g in greek_gods
+}
+
+client = AsyncIOMotorClient(
+    "mongodb://localhost:27017",
+    serverSelectionTimeoutMS=3000,   # ✅ FIX 2: Don't hang forever on DB connect
+    connectTimeoutMS=3000,
+)
 db = client["mythbot"]
 
 class Query(BaseModel):
@@ -42,31 +53,56 @@ def normalize(text: str) -> str:
     return re.sub(r"\s+", " ", text).strip()
 
 
-def levenshtein(a: str, b: str) -> int:
+# ✅ FIX 3: Early-exit Levenshtein with cutoff to avoid unnecessary computation
+def levenshtein(a: str, b: str, cutoff: int = 5) -> int:
+    # Early exit if length difference alone exceeds cutoff
+    if abs(len(a) - len(b)) > cutoff:
+        return cutoff + 1
+
     if len(a) < len(b):
-        return levenshtein(b, a)
+        return levenshtein(b, a, cutoff)
     if len(b) == 0:
         return len(a)
+
     prev_row = range(len(b) + 1)
     for i, ca in enumerate(a):
         curr_row = [i + 1]
+        row_min = i + 1
         for j, cb in enumerate(b):
             insertions = prev_row[j + 1] + 1
             deletions = curr_row[j] + 1
             substitutions = prev_row[j] + (ca != cb)
-            curr_row.append(min(insertions, deletions, substitutions))
+            val = min(insertions, deletions, substitutions)
+            curr_row.append(val)
+            row_min = min(row_min, val)
+        # ✅ Early exit: entire row already exceeds cutoff — no point continuing
+        if row_min > cutoff:
+            return cutoff + 1
         prev_row = curr_row
     return prev_row[-1]
 
 
+# ✅ FIX 4: Skip short stop-words and use indexed lookup first before fuzzy
 def find_closest_god(text: str):
-    text = normalize(text).replace(" ", "")
+    text_clean = normalize(text).replace(" ", "")
+
+    # Fast path: exact match in index
+    if text_clean in gods_by_name:
+        return gods_by_name[text_clean]
+
+    # Skip very short tokens — not god names
+    if len(text_clean) < 3:
+        return None
+
     best = None
     best_score = math.inf
     for god in greek_gods:
         name = normalize(god["name"]).replace(" ", "")
-        dist = levenshtein(text, name)
-        overlap = len([c for c in text if c in name])
+        dist = levenshtein(text_clean, name, cutoff=5)
+        # Skip expensive overlap calc if already disqualified
+        if dist > 5:
+            continue
+        overlap = sum(1 for c in text_clean if c in name)
         score = dist - overlap * 0.5
         if score < best_score:
             best = god
@@ -77,26 +113,44 @@ def find_closest_god(text: str):
 def extract_two_gods(text: str):
     cleaned = normalize(text)
     found = []
+    seen_names = set()
+
+    # Fast path: exact name match first
     for god in greek_gods:
         name = normalize(god["name"])
-        if name in cleaned:
+        if name in cleaned and name not in seen_names:
             found.append(god)
-    if len(found) < 2:
-        for word in cleaned.split():
-            god = find_closest_god(word)
-            if god and god not in found:
-                found.append(god)
-                if len(found) == 2:
-                    break
+            seen_names.add(name)
+
+    if len(found) >= 2:
+        return found[:2]
+
+    # ✅ FIX 5: Only fuzzy-search tokens long enough to be a god name
+    for word in cleaned.split():
+        if len(word) < 3:
+            continue
+        god = find_closest_god(word)
+        if god and god["name"] not in seen_names:
+            found.append(god)
+            seen_names.add(god["name"])
+            if len(found) == 2:
+                break
+
     return found[:2]
 
 
 def extract_single_god(text: str):
     cleaned = normalize(text)
+
+    # Fast path: exact name match
     for god in greek_gods:
         if normalize(god["name"]) in cleaned:
             return god
+
+    # ✅ FIX 6: Only fuzzy-search tokens that are plausibly god-name length
     for word in cleaned.split():
+        if len(word) < 3:
+            continue
         god = find_closest_god(word)
         if god:
             return god
@@ -168,10 +222,16 @@ power_rankings = {
     "morpheus": 4, "tyche": 5,
 }
 
+# ✅ FIX 7: Cache the power ranking list at startup — it never changes
+_cached_power_ranking: str = ""
+
 def get_power_rank(god):
     return power_rankings.get(normalize(god["name"]), 4)
 
 def get_power_ranking_list():
+    global _cached_power_ranking
+    if _cached_power_ranking:
+        return _cached_power_ranking
     sorted_gods = sorted(greek_gods, key=lambda g: get_power_rank(g), reverse=True)
     out = ["🔱 OLYMPIAN POWER RANKING:\n"]
     medals = {1: "🥇", 2: "🥈", 3: "🥉"}
@@ -181,7 +241,8 @@ def get_power_ranking_list():
         medal = medals.get(i, f"{i}.")
         title = god.get("title", "")
         out.append(f"{medal} {god['name']} — {title}\n   Power: [{bar}] {rank}/10")
-    return "\n\n".join(out)
+    _cached_power_ranking = "\n\n".join(out)
+    return _cached_power_ranking
 
 def compare_gods(god1, god2):
     r1, r2 = get_power_rank(god1), get_power_rank(god2)
@@ -220,7 +281,7 @@ def compare_gods(god1, god2):
 def format_general_info(god):
     name = god["name"]
     title = god.get("title", "")
-    desc = god.get("description", god.get("description", ""))
+    desc = god.get("description", "")
     domains = ", ".join(god.get("domain", []))
     symbols = ", ".join(god.get("symbols", []))
     roman = god.get("roman_equivalent", "Unknown")
@@ -446,10 +507,13 @@ async def ask_god(query: Query):
                 "• 'Who are Hades's children?'"
             )
 
-    # Save log to MongoDB
-    try:
-        await db.chats.insert_one({"user": query.message, "bot": response})
-    except Exception as e:
-        print("MongoDB error:", e)
+    # ✅ FIX 8: Fire-and-forget MongoDB log — user no longer waits for DB write
+    async def log_to_db():
+        try:
+            await db.chats.insert_one({"user": query.message, "bot": response})
+        except Exception as e:
+            print("MongoDB error:", e)
+
+    asyncio.create_task(log_to_db())
 
     return {"response": response}
